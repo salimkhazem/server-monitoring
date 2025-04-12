@@ -3,4 +3,4 @@ uvicorn
 paramiko
 python-dotenv
 pydantic
-python-multipart 
+python-multipart
