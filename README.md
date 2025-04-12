@@ -72,6 +72,35 @@ A web application to monitor server resources (GPU, CPU, memory, disk) and user 
 
 ## Deployment to Azure
 
+### Option 1: Containerized Deployment (Recommended)
+
+This repository includes Docker configuration and deployment scripts for easy deployment to Azure using containers.
+
+1. Make the deployment script executable:
+   ```bash
+   chmod +x deploy-to-azure.sh
+   ```
+
+2. Run the deployment script:
+   ```bash
+   ./deploy-to-azure.sh
+   ```
+   
+   Follow the prompts to enter your SSH credentials. The script will:
+   - Create necessary Azure resources (Resource Group, Container Registry, App Service Plan)
+   - Build and push Docker images for both frontend and backend
+   - Deploy both services to Azure App Service
+   - Configure environment variables
+   - Set up networking between the services
+
+3. Once deployment is complete, your application will be available at:
+   - Frontend: https://server-monitoring-frontend.azurewebsites.net
+   - Backend: https://server-monitoring-backend.azurewebsites.net
+
+For CI/CD setup, see the `azure-deployment-guide.md` file for detailed instructions on setting up GitHub Actions for automated deployments.
+
+### Option 2: Traditional Deployment
+
 ### Backend Deployment (Azure App Service)
 
 1. Create an Azure App Service:
