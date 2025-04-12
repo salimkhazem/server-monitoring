@@ -1,0 +1,7 @@
+# Environment variables
+.env
+frontend/.env
+# Python
+__pycache__/
+# Node.js
+node_modules/
