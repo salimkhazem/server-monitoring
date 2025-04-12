@@ -1,0 +1,72 @@
+# Build stage
+FROM python:3.9-slim as builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+
+# Final stage
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user
+RUN useradd -m -u 1000 appuser
+
+# Copy wheels from builder stage
+COPY --from=builder /app/wheels /wheels
+COPY --from=builder /app/requirements.txt .
+
+# Install dependencies
+RUN pip install --no-cache /wheels/*
+
+# Set up SSH directory and key with correct permissions
+RUN mkdir -p /app/.ssh && \
+    chown -R appuser:appuser /app/.ssh && \
+    chmod 700 /app/.ssh
+
+# Copy SSH key and set permissions
+COPY --chown=appuser:appuser ssh_key /app/.ssh/id_ed25519
+RUN chmod 600 /app/.ssh/id_ed25519
+
+# Copy application code and env file
+COPY main.py .
+COPY .env .
+
+# Create data directory with proper permissions
+RUN mkdir -p /app/data && \
+    chown -R appuser:appuser /app/data && \
+    chmod -R 755 /app/data
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Switch to non-root user
+USER appuser
+
+# Create volume for persistent data
+VOLUME ["/app/data"]
+
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Command to run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"] 
