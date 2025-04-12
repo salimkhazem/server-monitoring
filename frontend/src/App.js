@@ -21,6 +21,11 @@ import {
   useMediaQuery,
   IconButton,
   Tooltip,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
 } from '@mui/material';
 import {
   Memory as MemoryIcon,
@@ -36,7 +41,12 @@ import axios from 'axios';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 function App() {
-  const [gpuData, setGpuData] = useState({ gpus: [], active_users: [], system_resources: {} });
+  const [gpuData, setGpuData] = useState({ 
+    gpus: [], 
+    active_users: [], 
+    user_resources: [], 
+    system_resources: {} 
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(new Date());
@@ -142,7 +152,7 @@ function App() {
     );
   }
 
-  const { gpus, active_users, system_resources } = gpuData;
+  const { gpus, active_users, user_resources, system_resources } = gpuData;
 
   return (
     <ThemeProvider theme={theme}>
@@ -274,7 +284,7 @@ function App() {
                       </Box>
                     </Box>
                     <Typography variant="body2" sx={{ textAlign: 'center' }} color="text.secondary">
-                      {system_resources.memory?.used || 0}MB / {system_resources.memory?.total || 0}MB
+                      {system_resources.memory?.used || 0} / {system_resources.memory?.total || 0}
                     </Typography>
                   </CardContent>
                 </Card>
@@ -287,7 +297,7 @@ function App() {
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                       <StorageIcon sx={{ mr: 1, color: '#9c27b0' }} />
                       <Typography variant="h6">
-                        Disk Usage
+                        Disk Usage (Root)
                       </Typography>
                     </Box>
                     <Box sx={{ position: 'relative', mb: 2 }}>
@@ -328,6 +338,124 @@ function App() {
             </Grid>
           </Paper>
 
+          {/* Additional Disk Partitions Section */}
+          {system_resources.storage_disks && system_resources.storage_disks.length > 0 && (
+            <Paper 
+              sx={{ 
+                p: 3, 
+                mb: 3, 
+                background: 'linear-gradient(135deg, rgba(66,66,66,0.4) 0%, rgba(33,33,33,0.4) 100%)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}
+              elevation={4}
+            >
+              <Grid container spacing={3}>
+                {/* Storage Summary Card */}
+                <Grid item xs={12}>
+                  <Card sx={{ 
+                    background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                    mb: 3
+                  }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                        <StorageIcon sx={{ mr: 1, color: '#4caf50' }} />
+                        <Typography variant="h6">
+                          Total Storage Summary
+                        </Typography>
+                      </Box>
+                      
+                      <Box sx={{ mb: 3 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="body2" color="text.secondary">
+                            Usage
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {system_resources.storage_summary?.used || '0G'} / {system_resources.storage_summary?.total || '0G'}
+                          </Typography>
+                        </Box>
+                        <LinearProgress
+                          variant="determinate"
+                          value={system_resources.storage_summary?.usage_percent || 0}
+                          sx={{ 
+                            height: 12, 
+                            borderRadius: 6,
+                            backgroundColor: 'rgba(255,255,255,0.1)',
+                            '& .MuiLinearProgress-bar': {
+                              background: `linear-gradient(90deg, ${getProgressColor(system_resources.storage_summary?.usage_percent || 0)} 0%, #76ff03 100%)`,
+                              borderRadius: 6,
+                            }
+                          }}
+                        />
+                      </Box>
+
+                      <Typography variant="body1" sx={{ 
+                        textAlign: 'center',
+                        fontWeight: 'bold',
+                        color: '#4caf50'
+                      }}>
+                        Available: {system_resources.storage_summary?.available || '0G'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
+                    Storage Disks
+                  </Typography>
+                </Grid>
+
+                {system_resources.storage_disks.map((disk, index) => (
+                  <Grid item xs={12} md={4} key={index}>
+                    <Card sx={{ 
+                      background: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                    }}>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                          <StorageIcon sx={{ mr: 1, color: '#9c27b0' }} />
+                          <Typography variant="h6" noWrap>
+                            {disk.mount_point.split('/').pop()}
+                          </Typography>
+                        </Box>
+                        
+                        <Box sx={{ mb: 3 }}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                            <Typography variant="body2" color="text.secondary">
+                              Usage
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {disk.used} / {disk.total}
+                            </Typography>
+                          </Box>
+                          <LinearProgress
+                            variant="determinate"
+                            value={disk.usage_percent}
+                            sx={{ 
+                              height: 12, 
+                              borderRadius: 6,
+                              backgroundColor: 'rgba(255,255,255,0.1)',
+                              '& .MuiLinearProgress-bar': {
+                                background: `linear-gradient(90deg, ${getProgressColor(disk.usage_percent)} 0%, #76ff03 100%)`,
+                                borderRadius: 6,
+                              }
+                            }}
+                          />
+                        </Box>
+
+                        <Typography variant="body2" color="text.secondary">
+                          Available: {disk.available}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Paper>
+          )}
+
           {/* GPU Section */}
           <Paper 
             sx={{ 
@@ -364,7 +492,7 @@ function App() {
                             Memory Usage
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {gpu.memory_used}MB / {gpu.memory_total}MB
+                            {gpu.memory_used} / {gpu.memory_total}
                           </Typography>
                         </Box>
                         <LinearProgress
@@ -440,22 +568,113 @@ function App() {
                         Active Users
                       </Typography>
                     </Box>
-                    {active_users.length > 0 && active_users[0] !== '' ? (
-                      <List>
-                        {active_users.map((user, index) => (
-                          <ListItem 
-                            key={index}
-                            sx={{ 
-                              mb: 1, 
-                              backgroundColor: 'rgba(255,255,255,0.05)',
-                              borderRadius: 2
-                            }}
-                          >
-                            <PersonIcon sx={{ mr: 2, color: '#ff9800' }} />
-                            <ListItemText primary={user} />
-                          </ListItem>
-                        ))}
-                      </List>
+                    {user_resources && user_resources.length > 0 ? (
+                      <Box sx={{ overflowX: 'auto' }}>
+                        <Table size="small" sx={{ 
+                          '& .MuiTableCell-root': { 
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            py: 1.5
+                          },
+                          '& .MuiTableHead-root': {
+                            backgroundColor: 'rgba(255,255,255,0.05)'
+                          }
+                        }}>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 'bold' }}>Username</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }}>CPU Usage</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }}>Memory Usage</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }}>GPU Memory</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }}>Storage Usage</TableCell>
+                              <TableCell sx={{ fontWeight: 'bold' }}>Sessions</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {user_resources.map((user, index) => (
+                              <TableRow key={index} sx={{ 
+                                backgroundColor: index % 2 ? 'rgba(255,255,255,0.03)' : 'transparent',
+                                '&:hover': { backgroundColor: 'rgba(255,255,255,0.07)' }
+                              }}>
+                                <TableCell>
+                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <PersonIcon sx={{ mr: 1, fontSize: 18, color: '#ff9800' }} />
+                                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                      {user.username}
+                                    </Typography>
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <LinearProgress 
+                                      variant="determinate" 
+                                      value={Math.min(user.cpu_usage, 100)}
+                                      sx={{ 
+                                        width: 60, 
+                                        height: 8, 
+                                        borderRadius: 4,
+                                        backgroundColor: 'rgba(255,255,255,0.1)',
+                                        '& .MuiLinearProgress-bar': {
+                                          backgroundColor: getProgressColor(user.cpu_usage),
+                                          borderRadius: 4,
+                                        }
+                                      }}
+                                    />
+                                    <Typography variant="body2">
+                                      {user.cpu_usage}%
+                                    </Typography>
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <LinearProgress 
+                                      variant="determinate" 
+                                      value={Math.min(user.memory_usage, 100)}
+                                      sx={{ 
+                                        width: 60, 
+                                        height: 8, 
+                                        borderRadius: 4,
+                                        backgroundColor: 'rgba(255,255,255,0.1)',
+                                        '& .MuiLinearProgress-bar': {
+                                          backgroundColor: getProgressColor(user.memory_usage),
+                                          borderRadius: 4,
+                                        }
+                                      }}
+                                    />
+                                    <Typography variant="body2">
+                                      {user.memory_usage}%
+                                    </Typography>
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant="body2">
+                                    {user.gpu_memory_usage > 0 
+                                      ? `${(user.gpu_memory_usage / 1024).toFixed(1)}G` 
+                                      : 'None'}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant="body2">
+                                    {user.storage_usage > 0 
+                                      ? user.storage_usage > 1 
+                                        ? `${user.storage_usage.toFixed(1)}G` 
+                                        : `${(user.storage_usage * 1024).toFixed(0)}MB`
+                                      : 'N/A'}
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>
+                                  <Box>
+                                    {user.sessions.map((session, i) => (
+                                      <Typography key={i} variant="body2" sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                                        {session.terminal} {session.from !== 'N/A' ? `(${session.from})` : ''}
+                                      </Typography>
+                                    ))}
+                                  </Box>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </Box>
                     ) : (
                       <Typography variant="body2" color="text.secondary">
                         No active users at the moment
