@@ -40,6 +40,9 @@ import axios from 'axios';
 // Get the API URL from environment variables or use default
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
+// Log the API URL to help with debugging
+console.log('Using API URL:', API_URL);
+
 function App() {
   const [gpuData, setGpuData] = useState({ 
     gpus: [], 
@@ -105,12 +108,14 @@ function App() {
 
   const fetchData = async () => {
     try {
+      console.log('Fetching data from:', `${API_URL}/api/gpu-status`);
       const response = await axios.get(`${API_URL}/api/gpu-status`);
       setGpuData(response.data);
       setLastUpdated(new Date());
       setError(null);
     } catch (err) {
-      setError('Failed to fetch GPU data. Please check if the backend server is running.');
+      console.error('Error fetching data:', err);
+      setError(`Failed to connect to the server at ${API_URL}/api/gpu-status. Please ensure the server is running and the SSH connection is properly configured. Demo mode has been disabled.`);
     } finally {
       setLoading(false);
     }
