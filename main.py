@@ -540,169 +540,48 @@ def get_user_resources(client: paramiko.SSHClient) -> List[Dict]:
 
 @app.get("/api/gpu-status")
 async def get_gpu_status():
+    """
+    Get GPU status information via SSH connection.
+    """
     ssh_config = SSHConfig()
     client = None
     
     try:
-        # Try to get SSH client but don't throw an exception if it fails
-        try:
-            client = ssh_config.get_client()
-            
-            # Get GPU information - using valid fields
-            logger.info("Executing nvidia-smi command")
-            stdin, stdout, stderr = client.exec_command('nvidia-smi --query-gpu=index,name,memory.used,memory.total,temperature.gpu,power.draw --format=csv,noheader,nounits', timeout=10)
-            gpu_info = stdout.read().decode()
-            stderr_output = stderr.read().decode()
-            if stderr_output:
-                logger.warning(f"nvidia-smi stderr: {stderr_output}")
-            
-            # Get user information
-            logger.info("Executing who command")
-            stdin, stdout, stderr = client.exec_command('who', timeout=10)
-            user_info = stdout.read().decode()
-            stderr_output = stderr.read().decode()
-            if stderr_output:
-                logger.warning(f"who command stderr: {stderr_output}")
-            
-            # Get system resources
-            logger.info("Getting system resources")
-            system_resources = get_system_resources(client)
-            
-            # Get user resources
-            logger.info("Getting user resources")
-            user_resources = get_user_resources(client)
-            
-            gpus = parse_nvidia_smi(gpu_info)
-            
-            return {
-                "gpus": gpus,
-                "active_users": user_info.strip().split('\n'),
-                "user_resources": user_resources,
-                "system_resources": system_resources
-            }
-        except Exception as ssh_error:
-            logger.error(f"SSH connection error: {str(ssh_error)}")
-            logger.error(traceback.format_exc())
-            
-            # Return mock data
-            logger.info("Returning mock data for demonstration")
-            return {
-                "gpus": [
-                    {
-                        "id": "0",
-                        "name": "NVIDIA GeForce RTX 3080",
-                        "memory_used": "5.0G",
-                        "memory_total": "10.0G",
-                        "temperature": "65",
-                        "power_usage": "180",
-                        "processes": "python, nvidia-smi",
-                        "user": "demo_user"
-                    },
-                    {
-                        "id": "1",
-                        "name": "NVIDIA GeForce RTX 3090",
-                        "memory_used": "8.0G",
-                        "memory_total": "24.0G",
-                        "temperature": "72",
-                        "power_usage": "220",
-                        "processes": "python, tensorflow",
-                        "user": "demo_user"
-                    }
-                ],
-                "active_users": ["demo_user tty1  2025-04-12 01:30"],
-                "user_resources": [
-                    {
-                        "username": "demo_user",
-                        "cpu_usage": 30.5,
-                        "memory_usage": 16.0,
-                        "gpu_memory_usage": 1280,
-                        "storage_usage": 256.0,
-                        "sessions": [
-                            {
-                                "terminal": "tty1",
-                                "date": "2025-04-12 01:30",
-                                "from": "01:30"
-                            }
-                        ]
-                    }
-                ],
-                "system_resources": {
-                    "disk": {
-                        "total": "512G",
-                        "used": "256G",
-                        "available": "256G",
-                        "usage_percent": 50
-                    },
-                    "all_disks": [
-                        {
-                            "filesystem": "/dev/sda1",
-                            "total": "512G",
-                            "used": "256G",
-                            "available": "256G",
-                            "usage_percent": 50,
-                            "mount_point": "/"
-                        },
-                        {
-                            "filesystem": "/dev/sdb1",
-                            "total": "1024G",
-                            "used": "512G",
-                            "available": "512G",
-                            "usage_percent": 50,
-                            "mount_point": "/data"
-                        },
-                        {
-                            "filesystem": "/dev/sdc1",
-                            "total": "2048G",
-                            "used": "1024G",
-                            "available": "1024G",
-                            "usage_percent": 50,
-                            "mount_point": "/mnt/storage"
-                        }
-                    ],
-                    "storage_disks": [
-                        {
-                            "filesystem": "/dev/nvme1n1",
-                            "total": "11T",
-                            "used": "944G",
-                            "available": "9.4T",
-                            "usage_percent": 9,
-                            "mount_point": "/mnt/storage_1_10T"
-                        },
-                        {
-                            "filesystem": "/dev/nvme2n1",
-                            "total": "11T",
-                            "used": "28K",
-                            "available": "11T",
-                            "usage_percent": 1,
-                            "mount_point": "/mnt/storage_2_10T"
-                        },
-                        {
-                            "filesystem": "/dev/md0",
-                            "total": "1.8T",
-                            "used": "1.6T",
-                            "available": "202G",
-                            "usage_percent": 89,
-                            "mount_point": "/mnt/user_disk"
-                        }
-                    ],
-                    "storage_summary": {
-                        "total": "23.8T",
-                        "used": "2.5T",
-                        "available": "21.3T",
-                        "usage_percent": 10.5
-                    },
-                    "memory": {
-                        "total": "32.0G",
-                        "used": "16.0G",
-                        "free": "16.0G",
-                        "usage_percent": 50.0
-                    },
-                    "cpu": {
-                        "usage_percent": 30.5,
-                        "cores": "16 cores"
-                    }
-                }
-            }
+        # Try to get SSH client
+        client = ssh_config.get_client()
+        
+        # Get GPU information
+        logger.info("Executing nvidia-smi command")
+        stdin, stdout, stderr = client.exec_command('nvidia-smi --query-gpu=index,name,memory.used,memory.total,temperature.gpu,power.draw --format=csv,noheader,nounits', timeout=10)
+        gpu_info = stdout.read().decode()
+        stderr_output = stderr.read().decode()
+        if stderr_output:
+            logger.warning(f"nvidia-smi stderr: {stderr_output}")
+        
+        # Get user information
+        logger.info("Executing who command")
+        stdin, stdout, stderr = client.exec_command('who', timeout=10)
+        user_info = stdout.read().decode()
+        stderr_output = stderr.read().decode()
+        if stderr_output:
+            logger.warning(f"who command stderr: {stderr_output}")
+        
+        # Get system resources
+        logger.info("Getting system resources")
+        system_resources = get_system_resources(client)
+        
+        # Get user resources
+        logger.info("Getting user resources")
+        user_resources = get_user_resources(client)
+        
+        gpus = parse_nvidia_smi(gpu_info)
+        
+        return {
+            "gpus": gpus,
+            "active_users": user_info.strip().split('\n'),
+            "user_resources": user_resources,
+            "system_resources": system_resources
+        }
     except Exception as e:
         logger.error(f"Unexpected error in get_gpu_status: {str(e)}")
         logger.error(traceback.format_exc())
